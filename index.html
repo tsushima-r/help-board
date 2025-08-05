@@ -1,0 +1,272 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>アルバイト用連絡掲示板</title>
+<style>
+body {
+font-family: "Segoe UI", sans-serif;
+background-color: #f8f8f8;
+margin: 0;
+padding: 20px;
+}
+
+h1 {
+color: #333;
+}
+
+form {
+background: #fff;
+padding: 15px;
+border-radius: 8px;
+box-shadow: 0 0 10px rgba(0,0,0,0.1);
+margin-bottom: 20px;
+}
+
+input, textarea {
+width: 100%;
+padding: 10px;
+margin: 8px 0;
+border: 1px solid #ccc;
+border-radius: 5px;
+}
+
+button {
+padding: 10px 15px;
+background: #28a745;
+color: white;
+border: none;
+border-radius: 5px;
+cursor: pointer;
+}
+
+button:hover {
+background: #218838;
+}
+
+.post {
+background: #fff;
+padding: 15px;
+margin-bottom: 15px;
+border-left: 4px solid #007bff;
+border-radius: 5px;
+box-shadow: 0 0 5px rgba(0,0,0,0.05);
+}
+
+.post h3 {
+margin: 0 0 5px;
+}
+
+.post p {
+margin: 5px 0;
+}
+
+.post small {
+color: #777;
+}
+
+.delete-btn {
+background: #dc3545;
+margin-top: 10px;
+}
+
+.delete-btn:hover {
+background: #c82333;
+}
+
+.reply-box {
+margin-top: 10px;
+}
+</style>
+</head>
+<body>
+<h1>アルバイト用連絡掲示板</h1>
+
+<form id="postForm">
+<input type="text" id="title" placeholder="タイトル" required />
+<textarea id="content" placeholder="内容" required></textarea>
+<input type="text" id="author" placeholder="投稿者名" required />
+<button type="submit">投稿する</button>
+</form>
+
+<div id="postList"></div>
+<script>
+const form = document.getElementById("postForm");
+const postList = document.getElementById("postList");
+let posts = JSON.parse(localStorage.getItem("posts")) || [];
+
+// Cookie操作関数
+function setCookie(name, value, days) {
+  const d = new Date();
+  d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+  const expires = "expires=" + d.toUTCString();
+  document.cookie = name + "=" + encodeURIComponent(value) + ";" + expires + ";path=/";
+}
+
+function getCookie(name) {
+  const cname = name + "=";
+  const decodedCookie = decodeURIComponent(document.cookie);
+  const ca = decodedCookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i].trim();
+    if (c.indexOf(cname) === 0) return c.substring(cname.length, c.length);
+  }
+  return "";
+}
+
+function renderPosts() {
+  postList.innerHTML = "";
+  posts.forEach((post, index) => {
+    const postDiv = document.createElement("div");
+    postDiv.className = "post";
+
+    postDiv.innerHTML = `
+      <h3>${escapeHTML(post.title)}</h3>
+      <p>${escapeHTML(post.content)}</p>
+      <small>投稿者: ${escapeHTML(post.author)} | 日時: ${post.timestamp}</small><br/>
+      <button class="delete-btn" onclick="deletePost(${index})">削除</button>
+      <button onclick="toggleReplyForm(${index})">返信する</button>
+      <div id="replyForm-${index}" class="reply-box" style="display: none;">
+        <input type="text" placeholder="名前" id="replyAuthor-${index}" />
+        <input type="text" placeholder="返信内容" id="replyContent-${index}" />
+        <button onclick="submitReply(${index})">送信</button>
+      </div>
+      <div id="replies-${index}" class="reply-box"></div>
+    `;
+
+    postList.appendChild(postDiv);
+
+    // クッキーから名前を各返信フォームにセット
+    const savedName = getCookie("username");
+    if (savedName) {
+      const replyNameInput = postDiv.querySelector(`#replyAuthor-${index}`);
+      if (replyNameInput) {
+        replyNameInput.value = savedName;
+      }
+    }
+
+    renderReplies(index);
+  });
+}
+
+function toggleReplyForm(index) {
+  posts.forEach((_, i) => {
+    const form = document.getElementById(`replyForm-${i}`);
+    if (form) form.style.display = "none";
+  });
+
+  const targetForm = document.getElementById(`replyForm-${index}`);
+  targetForm.style.display = "block";
+
+  const savedName = getCookie("username");
+  const replyNameInput = document.getElementById(`replyAuthor-${index}`);
+  if (savedName && replyNameInput) {
+    replyNameInput.value = savedName;
+  }
+}
+
+function submitReply(index) {
+  const replyAuthor = document.getElementById(`replyAuthor-${index}`).value.trim();
+  const replyContent = document.getElementById(`replyContent-${index}`).value.trim();
+
+  if (!replyAuthor || !replyContent) {
+    alert("名前と返信内容を入力してください。");
+    return;
+  }
+
+  // 名前をクッキーに保存（親投稿でも使える）
+  setCookie("username", replyAuthor, 365);
+
+  const timestamp = new Date().toLocaleString();
+  const reply = { author: replyAuthor, content: replyContent, timestamp };
+
+  if (!posts[index].replies) {
+    posts[index].replies = [];
+  }
+
+  posts[index].replies.push(reply);
+  localStorage.setItem("posts", JSON.stringify(posts));
+  renderPosts();
+}
+
+function renderReplies(index) {
+  const repliesDiv = document.getElementById(`replies-${index}`);
+  const replies = posts[index].replies || [];
+
+  repliesDiv.innerHTML = "";
+  replies.forEach(reply => {
+    const replyEl = document.createElement("div");
+    replyEl.style.backgroundColor = "#f1f1f1";
+    replyEl.style.padding = "8px";
+    replyEl.style.marginTop = "5px";
+    replyEl.style.borderRadius = "5px";
+
+    replyEl.innerHTML = `
+      <p style="margin: 0;">${escapeHTML(reply.content)}</p>
+      <small>↳ ${escapeHTML(reply.author)}（${reply.timestamp}）</small>
+    `;
+
+    repliesDiv.appendChild(replyEl);
+  });
+}
+
+function deletePost(index) {
+  if (confirm("本当に削除しますか？")) {
+    posts.splice(index, 1);
+    localStorage.setItem("posts", JSON.stringify(posts));
+    renderPosts();
+  }
+}
+
+form.addEventListener("submit", function (e) {
+  e.preventDefault();
+
+  const title = document.getElementById("title").value.trim();
+  const content = document.getElementById("content").value.trim();
+  const author = document.getElementById("author").value.trim();
+  const timestamp = new Date().toLocaleString();
+
+  if (title && content && author) {
+    setCookie("username", author, 365);
+    posts.unshift({ title, content, author, timestamp, replies: [] });
+    localStorage.setItem("posts", JSON.stringify(posts));
+    form.reset();
+    renderPosts();
+  }
+});
+
+// XSS対策用
+function escapeHTML(str) {
+  if (!str) return "";
+  return str.replace(/[&<>"']/g, function(match) {
+    const escapeMap = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    };
+    return escapeMap[match];
+  });
+}
+
+// ページ読み込み時にクッキーから親投稿の名前を補完し、初期表示
+window.addEventListener("DOMContentLoaded", () => {
+  const savedName = getCookie("username");
+  if (savedName) {
+    const nameInput = document.getElementById("author");
+    if (nameInput) {
+      nameInput.value = savedName;
+    }
+  }
+
+  renderPosts();
+});
+</script>
+
+
+</body>
+</html>
+
