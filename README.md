@@ -9,6 +9,8 @@
 
 ▶️ [こちらから実際にお試しいただけます！](https://tsushima-r.github.io/help-board/)
 
+最新の制作物は [GitHubのプロフィールページ](https://github.com/tsushima-r) からご覧いただけます。
+
 ---
 
 
@@ -43,4 +45,4 @@
   
 
   
-最新の制作物は [GitHubのプロフィールページ](https://github.com/tsushima-r) からご覧いただけます。
+
