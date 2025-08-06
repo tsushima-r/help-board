@@ -37,5 +37,10 @@
 - [猫ミーム格闘キャラ抽選器 🐱🎮](https://github.com/tsushima-r/Meme-Fighter-Picker/tree/main)  
   → 苦手キャラを除外して「自分が使える格ゲーキャラだけ」からランダム抽選できる便利ツール！
 
+ - [セリフ選択UIモック](https://github.com/tsushima-r/irasutoya-mock-app)　
+  → RPG風「セリフ選択」UIを再現したモックです。
+
+  
+
   
 最新の制作物は [GitHubのプロフィールページ](https://github.com/tsushima-r) からご覧いただけます。
